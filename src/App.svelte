@@ -167,56 +167,59 @@
   class="bg-zinc-950 w-full h-screen flex justify-center items-center relative"
   on:mouseleave={() => (isPainting = false)}
 >
-  <div class="flex flex-col gap-2 aspect-square w-1/3">
+  <div class="flex flex-col aspect-square w-1/3">
     {#each maze as row, y}
-      <div class="flex flex-row gap-2">
+      <div class="flex flex-row">
         {#each row as tile, x}
           <!-- getNodeColor doesn't update unless one of its arguments does -->
           <!-- svelte-ignore a11y-click-events-have-key-events -->
           <!-- svelte-ignore a11y-no-static-element-interactions -->
-          <div
-            class="flex-1 aspect-square {getNodeColor(
-              { x, y },
-              maze,
-              path,
-              hoveringOverTile,
-              hoveringType,
-              isDragging
-            )} rounded-sm"
-            draggable={tile === 2 || tile === 3 ? "true" : "false"}
-            on:dragstart={(e) => {
-              startDragTile(e, { x, y });
-              // TODO:
-              hoveringType = tile;
-            }}
-            on:drop={(e) => dropTile(e, { x, y })}
-            on:dragenter={() => (hoveringOverTile = { x, y })}
-            on:dragleave={() => (hoveringOverTile = null)}
-            on:dragend={() => {
-              hoveringOverTile = null;
-              isDragging = false;
-            }}
-            on:drag={() => {
-              // https://stackoverflow.com/questions/36379184/html5-draggable-hide-original-element
-              isDragging = true;
-              isPainting = false;
-            }}
-            ndragover={tile !== hoveringType && (tile === 2 || tile === 3)
-              ? "return true"
-              : "return false"}
-            in:scale={{ delay: 0 }}
-            out:scale={{ delay: 0 }}
-            on:mousedown={() => {
-              if (isDragging) return;
-              if (tile !== 0 && tile !== 1) return;
-              changeTile({ x, y });
-            }}
-            on:mouseenter={() => {
-              if (!isPainting) return;
-              if (tile !== 0 && tile !== 1) return;
-              changeTile({ x, y });
-            }}
-          />
+          <div class="aspect-square flex-1">
+            <div
+              class="test flex-1 aspect-square {getNodeColor(
+                { x, y },
+                maze,
+                path,
+                hoveringOverTile,
+                hoveringType,
+                isDragging
+              )} rounded-sm"
+              draggable={tile === 2 || tile === 3 ? "true" : "false"}
+              on:dragstart={(e) => {
+                startDragTile(e, { x, y });
+                // TODO:
+                hoveringType = tile;
+              }}
+              on:drop={(e) => dropTile(e, { x, y })}
+              on:dragenter={() => (hoveringOverTile = { x, y })}
+              on:dragleave={() => (hoveringOverTile = null)}
+              on:dragend={() => {
+                hoveringOverTile = null;
+                isDragging = false;
+              }}
+              on:drag={() => {
+                // https://stackoverflow.com/questions/36379184/html5-draggable-hide-original-element
+                isDragging = true;
+                isPainting = false;
+              }}
+              ondragover={// false means droppable area
+              tile !== hoveringType && (tile === 2 || tile === 3)
+                ? "return true"
+                : "return false"}
+              in:scale={{ delay: 0 }}
+              out:scale={{ delay: 0 }}
+              on:mousedown={() => {
+                if (isDragging) return;
+                if (tile !== 0 && tile !== 1) return;
+                changeTile({ x, y });
+              }}
+              on:mouseenter={() => {
+                if (!isPainting) return;
+                if (tile !== 0 && tile !== 1) return;
+                changeTile({ x, y });
+              }}
+            />
+          </div>
         {/each}
       </div>
     {/each}
@@ -236,3 +239,9 @@
     }}
   />
 </div>
+
+<style>
+  .test {
+    margin: 6%;
+  }
+</style>

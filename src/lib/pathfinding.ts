@@ -17,12 +17,12 @@ function createNode(tile: number) {
   return { isVisited: false, throughPos: null, distance: Infinity };
 }
 
-function getNode({ x, y }: Pos, nodes: Nodes) {
+function getNode({ x, y }: Pos, nodes: Nodes, mazeSize: number) {
   if (x < 0) return null;
   if (y < 0) return null;
 
-  if (x >= nodes[0].length) return null;
-  if (y >= nodes.length) return null;
+  if (x >= mazeSize) return null;
+  if (y >= mazeSize) return null;
 
   return nodes[y][x];
 }
@@ -34,39 +34,67 @@ function recalculateNode(node: Node, throughPos: Pos, throughDistance: number) {
   }
 }
 
-export function calculatePath(startPos: Pos, endPos: Pos, maze: number[][]) {
+export function calculatePath(maze: number[][], mazeSize: number) {
+  let startPos: Pos | null = null;
+  let endPos: Pos | null = null;
+
   let nodes: Nodes = [];
-  for (let [i, row] of maze.entries()) {
+  for (let y = 0; y < mazeSize; y++) {
     nodes.push([]);
-    for (let tile of row) {
-      nodes[i].push(createNode(tile));
+    for (let x = 0; x < mazeSize; x++) {
+      if (maze[y][x] === 2) {
+        startPos = { x, y };
+      } else if (maze[y][x] === 3) {
+        endPos = { x, y };
+      }
+      nodes[y].push(createNode(maze[y][x]));
     }
   }
 
-  const startNode = getNode(startPos, nodes);
+  if (startPos === null || endPos === null)
+    throw new Error("Start or end pos is null");
+
+  const startNode = getNode(startPos, nodes, mazeSize);
   if (startNode === null) throw new Error("Start node is wall");
-  if (getNode(endPos, nodes) === null) throw new Error("End node is wall");
+  if (getNode(endPos, nodes, mazeSize) === null)
+    throw new Error("End node is wall");
 
   startNode.distance = 0;
   let currentPos = startPos;
 
   while (1) {
-    const currentNode = getNode(currentPos, nodes);
+    const currentNode = getNode(currentPos, nodes, mazeSize);
     if (currentNode === null) throw new Error("Current node is wall");
 
     currentNode.isVisited = true;
 
-    const left = getNode({ x: currentPos.x - 1, y: currentPos.y }, nodes);
+    const left = getNode(
+      { x: currentPos.x - 1, y: currentPos.y },
+      nodes,
+      mazeSize
+    );
     if (left !== null) recalculateNode(left, currentPos, currentNode.distance);
 
-    const right = getNode({ x: currentPos.x + 1, y: currentPos.y }, nodes);
+    const right = getNode(
+      { x: currentPos.x + 1, y: currentPos.y },
+      nodes,
+      mazeSize
+    );
     if (right !== null)
       recalculateNode(right, currentPos, currentNode.distance);
 
-    const top = getNode({ x: currentPos.x, y: currentPos.y - 1 }, nodes);
+    const top = getNode(
+      { x: currentPos.x, y: currentPos.y - 1 },
+      nodes,
+      mazeSize
+    );
     if (top !== null) recalculateNode(top, currentPos, currentNode.distance);
 
-    const bottom = getNode({ x: currentPos.x, y: currentPos.y + 1 }, nodes);
+    const bottom = getNode(
+      { x: currentPos.x, y: currentPos.y + 1 },
+      nodes,
+      mazeSize
+    );
     if (bottom !== null)
       recalculateNode(bottom, currentPos, currentNode.distance);
 
@@ -85,7 +113,11 @@ export function calculatePath(startPos: Pos, endPos: Pos, maze: number[][]) {
           continue;
         }
 
-        const shortestDistanceNode = getNode(shortestDistancePos, nodes);
+        const shortestDistanceNode = getNode(
+          shortestDistancePos,
+          nodes,
+          mazeSize
+        );
         // This shouldn't ever happen, since if node is null it gets skipped
         if (shortestDistanceNode === null)
           throw new Error("Shortest distance node is wall");
@@ -102,7 +134,7 @@ export function calculatePath(startPos: Pos, endPos: Pos, maze: number[][]) {
   }
 
   // no path
-  let throughPos = getNode(endPos, nodes)?.throughPos || null;
+  let throughPos = getNode(endPos, nodes, mazeSize)?.throughPos || null;
 
   let path: Pos[] = [];
 
@@ -111,7 +143,7 @@ export function calculatePath(startPos: Pos, endPos: Pos, maze: number[][]) {
 
     path.push(throughPos);
 
-    throughPos = getNode(throughPos, nodes)?.throughPos || null;
+    throughPos = getNode(throughPos, nodes, mazeSize)?.throughPos || null;
 
     if (throughPos?.x === startPos.x && throughPos?.y === startPos.y) break;
   }

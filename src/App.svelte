@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { fade, scale } from "svelte/transition";
-  import { quintOut } from "svelte/easing";
-  import { onMount } from "svelte";
+  import { scale } from "svelte/transition";
   import { calculatePath, type Pos } from "./lib/pathfinding";
+  import { onDestroy, onMount } from "svelte";
 
-  let maxMazeSize = 10;
+  let maxMazeSize = 20;
   let mazeSize = 5;
   // empty rows need to exist for the animation to work correctly
   let maze = [
@@ -118,11 +117,9 @@
     return "bg-zinc-50";
   }
 
-  function startDragTile(e: DragEvent, dragStartPos: Pos, tileType: 2 | 3) {
+  function startDragTile(e: DragEvent, dragStartPos: Pos) {
     const data = { dragStartPos };
     e.dataTransfer?.setData("text/plain", JSON.stringify(data));
-
-    hoveringType = tileType;
   }
 
   function dropTile(e: DragEvent, tilePos: Pos) {
@@ -137,17 +134,40 @@
     maze[tilePos.y][tilePos.x] = hoveringType;
   }
 
+  onMount(() => {
+    document.addEventListener("mousedown", () => (isPainting = true), {
+      capture: false,
+    });
+    document.addEventListener("mouseup", () => (isPainting = false), {
+      capture: false,
+    });
+  });
+
+  onDestroy(() => {
+    document.removeEventListener("mousedown", () => (isPainting = true), {
+      capture: false,
+    });
+    document.addEventListener("mouseup", () => (isPainting = false), {
+      capture: false,
+    });
+  });
+
+  let isPainting = false;
+
   let isDragging = false;
+  // 2 is start 3 is end
   let hoveringType: 2 | 3 = 2;
   let hoveringOverTile: Pos | null = null;
 
   $: maze && (path = calculatePath(maze, mazeSize));
 </script>
 
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
   class="bg-zinc-950 w-full h-screen flex justify-center items-center relative"
+  on:mouseleave={() => (isPainting = false)}
 >
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-2 aspect-square w-1/3">
     {#each maze as row, y}
       <div class="flex flex-row gap-2">
         {#each row as tile, x}
@@ -155,9 +175,19 @@
           <!-- svelte-ignore a11y-click-events-have-key-events -->
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
+            class="flex-1 aspect-square {getNodeColor(
+              { x, y },
+              maze,
+              path,
+              hoveringOverTile,
+              hoveringType,
+              isDragging
+            )} rounded-sm"
             draggable={tile === 2 || tile === 3 ? "true" : "false"}
             on:dragstart={(e) => {
-              startDragTile(e, { x, y }, tile);
+              startDragTile(e, { x, y });
+              // TODO:
+              hoveringType = tile;
             }}
             on:drop={(e) => dropTile(e, { x, y })}
             on:dragenter={() => (hoveringOverTile = { x, y })}
@@ -169,24 +199,23 @@
             on:drag={() => {
               // https://stackoverflow.com/questions/36379184/html5-draggable-hide-original-element
               isDragging = true;
+              isPainting = false;
             }}
-            ondragover={tile !== hoveringType && (tile === 2 || tile === 3)
+            ndragover={tile !== hoveringType && (tile === 2 || tile === 3)
               ? "return true"
               : "return false"}
             in:scale={{ delay: 0 }}
             out:scale={{ delay: 0 }}
-            on:click={() => {
+            on:mousedown={() => {
+              if (isDragging) return;
               if (tile !== 0 && tile !== 1) return;
               changeTile({ x, y });
             }}
-            class="w-10 h-10 {getNodeColor(
-              { x, y },
-              maze,
-              path,
-              hoveringOverTile,
-              hoveringType,
-              isDragging
-            )} rounded-sm"
+            on:mouseenter={() => {
+              if (!isPainting) return;
+              if (tile !== 0 && tile !== 1) return;
+              changeTile({ x, y });
+            }}
           />
         {/each}
       </div>
@@ -202,6 +231,7 @@
     min={3}
     max={maxMazeSize}
     on:input={(e) => {
+      // TODO:
       resizeMaze(Number(e?.target?.value) || 0);
     }}
   />

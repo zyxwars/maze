@@ -31,7 +31,13 @@
         newMaze[y].push(...maze[y]);
         newMaze[y].push(...Array(newSize - mazeSize).fill(0));
       }
-      newMaze.push(...Array(newSize - mazeSize).fill(Array(newSize).fill(0)));
+      // Array.fill uses the same object, Array.from to creates unique sub arrays
+      // https://stackoverflow.com/questions/35578478/array-prototype-fill-with-object-passes-reference-and-not-new-instance
+      newMaze.push(
+        ...Array.from({ length: newSize - mazeSize }, () =>
+          Array(newSize).fill(0)
+        )
+      );
     } else {
       //shrink
       for (let y = 0; y < newSize; y++) {
@@ -106,7 +112,9 @@
       }
     }
 
-    if (maze[pos.y][pos.x] === 1) return "bg-zinc-950";
+    // TODO: a bit of a hacky place to add flipped
+    // this triggers flip transition each time a tile type changes
+    if (maze[pos.y][pos.x] === 1) return "bg-zinc-950 flipped";
 
     if (isDragging && maze[pos.y][pos.x] === hoveringType) return "bg-zinc-50";
 
@@ -176,7 +184,7 @@
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div class="aspect-square flex-1">
             <div
-              class="test flex-1 aspect-square {getNodeColor(
+              class="tile-transitions relative-margin flex-1 aspect-square {getNodeColor(
                 { x, y },
                 maze,
                 path,
@@ -241,7 +249,15 @@
 </div>
 
 <style>
-  .test {
+  .relative-margin {
     margin: 6%;
+  }
+
+  .tile-transitions {
+    transition: background-color 1s, transform 1s;
+  }
+
+  .flipped {
+    transform: rotateX(180deg);
   }
 </style>

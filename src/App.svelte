@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { scale } from "svelte/transition";
+  import { fly, scale, slide } from "svelte/transition";
   import { calculatePath, type Pos } from "./lib/pathfinding";
   import { onDestroy, onMount } from "svelte";
+  import { quintOut } from "svelte/easing";
 
   let maxMazeSize = 20;
   let mazeSize = 5;
@@ -172,6 +173,8 @@
     document.addEventListener("mouseup", () => (isPainting = false), {
       capture: false,
     });
+
+    isMounted = true;
   });
 
   onDestroy(() => {
@@ -190,6 +193,8 @@
   let hoveringType: 2 | 3 = 2;
   let hoveringOverTile: Pos | null = null;
 
+  let isMounted = false;
+
   $: maze && (path = calculatePath(maze, mazeSize));
 </script>
 
@@ -200,76 +205,96 @@
 >
   <div class="flex flex-col aspect-square w-1/3">
     {#each maze as row, y}
-      <div class="flex flex-row">
-        {#each row as tile, x}
-          <!-- getNodeColor doesn't update unless one of its arguments does -->
-          <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <!-- svelte-ignore a11y-no-static-element-interactions -->
-          <div class="aspect-square flex-1">
-            <div
-              class="tile-transitions relative-margin flex-1 aspect-square {getNodeColorWithFlip(
-                { x, y },
-                maze,
-                path,
-                hoveringOverTile,
-                hoveringType,
-                isDragging
-              )} rounded-sm"
-              draggable={tile === 2 || tile === 3 ? "true" : "false"}
-              on:dragstart={(e) => {
-                startDragTile(e, { x, y });
-                // TODO:
-                hoveringType = tile;
-              }}
-              on:drop={(e) => dropTile(e, { x, y })}
-              on:dragenter={() => (hoveringOverTile = { x, y })}
-              on:dragleave={() => (hoveringOverTile = null)}
-              on:dragend={() => {
-                hoveringOverTile = null;
-                isDragging = false;
-              }}
-              on:drag={() => {
-                // https://stackoverflow.com/questions/36379184/html5-draggable-hide-original-element
-                isDragging = true;
-                isPainting = false;
-              }}
-              ondragover={// false means droppable area
-              tile !== hoveringType && (tile === 2 || tile === 3)
-                ? "return true"
-                : "return false"}
-              in:scale={{ delay: 0 }}
-              out:scale={{ delay: 0 }}
-              on:mousedown={() => {
-                if (isDragging) return;
-                if (tile !== 0 && tile !== 1) return;
-                changeTile({ x, y });
-              }}
-              on:mouseenter={() => {
-                if (!isPainting) return;
-                if (tile !== 0 && tile !== 1) return;
-                changeTile({ x, y });
-              }}
-            />
-          </div>
-        {/each}
-      </div>
+      {#if isMounted}
+        <div
+          in:slide={{
+            delay: 250 + y * 200,
+            duration: 300,
+            easing: quintOut,
+            axis: "y",
+          }}
+          class="flex flex-row"
+        >
+          {#each row as tile, x}
+            <!-- getNodeColor doesn't update unless one of its arguments does -->
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <div class="aspect-square flex-1">
+              <div
+                class="tile-transitions relative-margin flex-1 aspect-square {getNodeColorWithFlip(
+                  { x, y },
+                  maze,
+                  path,
+                  hoveringOverTile,
+                  hoveringType,
+                  isDragging
+                )} rounded-sm"
+                draggable={tile === 2 || tile === 3 ? "true" : "false"}
+                on:dragstart={(e) => {
+                  startDragTile(e, { x, y });
+                  // TODO:
+                  hoveringType = tile;
+                }}
+                on:drop={(e) => dropTile(e, { x, y })}
+                on:dragenter={() => (hoveringOverTile = { x, y })}
+                on:dragleave={() => (hoveringOverTile = null)}
+                on:dragend={() => {
+                  hoveringOverTile = null;
+                  isDragging = false;
+                }}
+                on:drag={() => {
+                  // https://stackoverflow.com/questions/36379184/html5-draggable-hide-original-element
+                  isDragging = true;
+                  isPainting = false;
+                }}
+                ondragover={// false means droppable area
+                tile !== hoveringType && (tile === 2 || tile === 3)
+                  ? "return true"
+                  : "return false"}
+                in:scale={{ delay: 0 }}
+                out:scale={{ delay: 0 }}
+                on:mousedown={() => {
+                  if (isDragging) return;
+                  if (tile !== 0 && tile !== 1) return;
+                  changeTile({ x, y });
+                }}
+                on:mouseenter={() => {
+                  if (!isPainting) return;
+                  if (tile !== 0 && tile !== 1) return;
+                  changeTile({ x, y });
+                }}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
     {/each}
   </div>
 </div>
 
-<div class="absolute bottom-12 right-0 left-0 flex justify-center items-center">
-  <input
-    class="accent-pink-500"
-    type="range"
-    value={mazeSize}
-    min={3}
-    max={maxMazeSize}
-    on:input={(e) => {
-      // TODO:
-      resizeMaze(Number(e?.target?.value) || 0);
-    }}
-  />
-</div>
+{#if isMounted}
+  <div
+    class="absolute bottom-12 right-0 left-0 flex justify-center items-center"
+  >
+    <input
+      in:slide={{
+        delay: 250 + (mazeSize + 1) * 200,
+        duration: 300,
+        easing: quintOut,
+        axis: "y",
+      }}
+      class="accent-pink-500"
+      type="range"
+      value={mazeSize}
+      min={3}
+      max={maxMazeSize}
+      on:input={(e) => {
+        // TODO:
+        resizeMaze(Number(e?.target?.value) || 0);
+      }}
+    />
+  </div>
+{/if}
 
 <style>
   .relative-margin {

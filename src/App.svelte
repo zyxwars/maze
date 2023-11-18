@@ -112,9 +112,7 @@
       }
     }
 
-    // TODO: a bit of a hacky place to add flipped
-    // this triggers flip transition each time a tile type changes
-    if (maze[pos.y][pos.x] === 1) return "bg-zinc-950 flipped";
+    if (maze[pos.y][pos.x] === 1) return "bg-zinc-950";
 
     if (isDragging && maze[pos.y][pos.x] === hoveringType) return "bg-zinc-50";
 
@@ -123,6 +121,31 @@
     if (maze[pos.y][pos.x] === 3) return "bg-pink-500";
 
     return "bg-zinc-50";
+  }
+
+  function getNodeColorWithFlip(
+    pos: Pos,
+    maze: number[][],
+    path: Pos[],
+    hoveringOverTile: Pos | null,
+    hoveringType: 2 | 3,
+    isDragging: boolean
+  ) {
+    //  a bit of a hacky place to add flipped
+    // this triggers flip transition each time a tile type changes
+
+    const color = getNodeColor(
+      pos,
+      maze,
+      path,
+      hoveringOverTile,
+      hoveringType,
+      isDragging
+    );
+
+    const flip = maze[pos.y][pos.x] === 1 ? " flipped" : "";
+
+    return color + flip;
   }
 
   function startDragTile(e: DragEvent, dragStartPos: Pos) {
@@ -184,7 +207,7 @@
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div class="aspect-square flex-1">
             <div
-              class="tile-transitions relative-margin flex-1 aspect-square {getNodeColor(
+              class="tile-transitions relative-margin flex-1 aspect-square {getNodeColorWithFlip(
                 { x, y },
                 maze,
                 path,

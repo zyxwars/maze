@@ -1,0 +1,2 @@
+- fix random dragging
+- fix sizing on different displays
